@@ -15,7 +15,13 @@ concurrency:
 
 jobs:
   build:
-    runs-on: self-hosted
+    # ----------------------------------------------------
+    # 1. 这里是关键修改：
+    #    把 'self-hosted' 改成 'ubuntu-latest'
+    #    来使用 GitHub 的免费公用 Runner
+    # ----------------------------------------------------
+    runs-on: ubuntu-latest
+    
     steps:
       - name: Cleanup
         run: |
@@ -24,14 +30,17 @@ jobs:
           rm -rf ./.??* || true
           ls -la ./
 
+      # ----------------------------------------------------
+      # 2. 这里是第二处修改：
+      #    删除了所有和私有密钥 (secrets) 相关的 SSH 命令
+      #    只保留了必要的部分
+      # ----------------------------------------------------
       - name: Setup Environment
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VENDOR_PONCES_HOST_KEY }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
           git lfs install
-          git config --global user.name "Alberto Ponces"
-          git config --global user.email "ponces26@gmail.com"
+          # 把作者的个人信息改成通用的 CI 机器人信息
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           mkdir -p ${{ github.workspace }}/aosp
 
       - name: Checkout
@@ -39,10 +48,12 @@ jobs:
         with:
           path: ./aosp/treble_aosp
 
-      - name: Start SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VENDOR_PONCES_PRIV_KEY }}
+      # ----------------------------------------------------
+      # 3. 这里是第三处修改：
+      #    整个 'Start SSH Agent' 步骤都必须删除
+      #    因为它依赖你没有的私钥 (secrets)
+      # ----------------------------------------------------
+      # (原有的 'Start SSH Agent' 步骤已删除)
 
       - name: Build ROM
         run: ./treble_aosp/build.sh
